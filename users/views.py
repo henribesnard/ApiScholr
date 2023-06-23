@@ -1,4 +1,5 @@
-from .serializers import CustomTokenObtainPairSerializer, UserSerializer, UserCreateSerializer, UserCreateByHeadStaffSerializer, UserUpdateSerializer
+from .serializers import (CustomTokenObtainPairSerializer, UserSerializer, UserCreateSerializer, UserCreateByHeadStaffSerializer,
+                           UserUpdateSerializer, RoleSerializer)
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
@@ -10,10 +11,16 @@ from ApiScholr.permissions import IsAdminUser, IsHeadOrStaffUser
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import permissions, status, views
 from rest_framework.response import Response
+from .models import Role
 
 
 User = get_user_model()
 
+
+class RoleViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminUser]
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -77,6 +84,6 @@ class UserUpdateView(UpdateAPIView):
         if user.is_staff:
             return User.objects.all()
         elif set(user_roles).intersection(['HEAD', 'STAFF']):
-            return User.objects.filter(establishment=user.establishment)
+            return User.objects.filter(establishments=user.current_establishment)
         else:
             return User.objects.filter(id=user.id)

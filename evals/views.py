@@ -9,7 +9,7 @@ class AssessmentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Assessment.objects.filter(course__created_by__establishment=user.establishment)
+        return Assessment.objects.filter(course__created_by__current_establishment=user.current_establishment)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -23,7 +23,7 @@ class GradeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Grade.objects.filter(student__establishment=user.establishment)
+        return Grade.objects.filter(student__current_establishment=user.current_establishment)
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -39,7 +39,7 @@ class PerformanceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Performance.objects.filter(student__establishment=user.establishment)
+        return Performance.objects.filter(student__current_establishment=user.current_establishment)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)

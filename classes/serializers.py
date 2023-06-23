@@ -6,8 +6,9 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class SchoolclassSerializer(serializers.ModelSerializer):
-    principal_teacher = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(roles__name='Teacher'))
-    students = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(roles__name='Student'), many=True)
+    principal_teacher = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(roles__name='TEACHER'))
+    students = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(roles__name='STUDENT'), many=True)
+    establishment = serializers.PrimaryKeyRelatedField(read_only=True, required=False)
     
     class Meta:
         model = Schoolclass
@@ -15,26 +16,27 @@ class SchoolclassSerializer(serializers.ModelSerializer):
         
     def validate_principal_teacher(self, principal_teacher):
         request_user = self.context['request'].user
-        if principal_teacher.establishment != request_user.establishment:
+        if not principal_teacher.establishments.filter(id=request_user.current_establishment.id).exists():
             raise serializers.ValidationError(_("The principal teacher must belong to your establishment."))
         return principal_teacher
     
     def validate_students(self, students):
         request_user = self.context['request'].user
         for student in students:
-            if student.establishment != request_user.establishment:
-                raise serializers.ValidationError(_("All students must belong to your establishment."))
+          if not student.establishments.filter(id=request_user.current_establishment.id).exists():
+            raise serializers.ValidationError(_("All students must belong to your establishment."))
         return students
+
 
     def create(self, validated_data):
         request_user = self.context['request'].user
-        validated_data['establishment'] = request_user.establishment
+        validated_data['establishment'] = request_user.current_establishment
         validated_data['created_by'] = request_user
         return super().create(validated_data)
 
 
 class CourseSerializer(serializers.ModelSerializer):
-    teachers = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(roles__name='Teacher'), many=True)
+    teachers = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(roles__name='TEACHER'), many=True)
     
     class Meta:
         model = Course
@@ -48,14 +50,14 @@ class CourseSerializer(serializers.ModelSerializer):
     def validate_teachers(self, teachers):
         request_user = self.context['request'].user
         for teacher in teachers:
-            if teacher.establishment != request_user.establishment:
+            if not teacher.establishments.filter(id=request_user.current_establishment.id).exists():
                 raise serializers.ValidationError(_("All teachers must belong to your establishment."))
         return teachers
 
     def create(self, validated_data):
         request_user = self.context['request'].user
         schoolclass = validated_data.get('schoolclass')
-        if schoolclass.establishment == request_user.establishment:
+        if schoolclass.establishment == request_user.current_establishment:
             validated_data['created_by'] = request_user
             return super().create(validated_data)
         else:
@@ -74,18 +76,18 @@ class SchoolclassUpdateSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         request_user = self.context['request'].user
         # Mise à jour du queryset pour principal_teacher avec les enseignants de l'établissement de l'utilisateur courant
-        self.fields['principal_teacher'].queryset = User.objects.filter(establishment=request_user.establishment, roles__name='TEACHER')
+        self.fields['principal_teacher'].queryset = User.objects.filter(establishments=request_user.current_establishment, roles__name='TEACHER')
 
     def validate_students(self, students):
         request_user = self.context['request'].user
         for student in students:
-            if student.establishment != request_user.establishment:
+            if student.current_establishment != request_user.current_establishment:
                 raise serializers.ValidationError(_("All students must belong to your establishment."))
         return students
 
     def validate_principal_teacher(self, principal_teacher):
         request_user = self.context['request'].user
-        if principal_teacher.establishment != request_user.establishment:
+        if not principal_teacher.establishments.filter(id=request_user.current_establishment.id).exists():
             raise serializers.ValidationError(_("The principal teacher must belong to your establishment."))
         return principal_teacher
 
@@ -103,8 +105,8 @@ class CourseUpdateSerializer(serializers.ModelSerializer):
         teachers = attrs.get('teachers')
         user = self.context['request'].user
         for teacher in teachers:
-            if teacher.establishment != user.establishment:
+            if not teacher.establishments.filter(id=user.current_establishment.id).exists():
                 raise serializers.ValidationError(_("All teachers must be in the same establishment as the user."))
-            if attrs.get('schoolclass').establishment != user.establishment:
+            if attrs.get('schoolclass').establishment != user.current_establishment:
                 raise serializers.ValidationError(_("The course must be in the same establishment as the user."))
         return attrs

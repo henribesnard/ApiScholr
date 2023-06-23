@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.contrib.auth.hashers import make_password, is_password_usable
 
 
@@ -31,8 +33,9 @@ class Role(models.Model):
 
 class User(AbstractUser):
     roles = models.ManyToManyField(Role, blank=True)
-    establishment = models.ForeignKey('etabs.Establishment', on_delete=models.SET_NULL, verbose_name=_('Establishment'), blank=True, null=True)
-    children = models.ManyToManyField('self', verbose_name=_('Children'), blank=True, symmetrical=False)
+    establishments = models.ManyToManyField('etabs.Establishment', blank=True, verbose_name=_('Establishments'))
+    current_establishment = models.ForeignKey('etabs.Establishment', related_name='users_with_current', on_delete=models.SET_NULL, verbose_name=_('Current Establishment'), blank=True, null=True)
+    children = models.ManyToManyField('self', verbose_name=_('Children'), blank=True,limit_choices_to=Q(roles__name='Student'), symmetrical=False)
     is_principal_teacher = models.BooleanField(_('Principal Teacher'), default=False)
     position = models.CharField(_('Position'), max_length=200, blank=True, null=True)
     profile_picture = models.ImageField(_('Profile picture'), upload_to='profile_pictures/', blank=True, null=True)
@@ -41,6 +44,12 @@ class User(AbstractUser):
     created_by = models.ForeignKey('self', related_name='created_users', null=True, blank=True, on_delete=models.SET_NULL, verbose_name=_('User who created'))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Update date'))
     updated_by = models.ForeignKey('self', related_name='updated_users', null=True, blank=True, on_delete=models.SET_NULL, verbose_name=_('User who updated'))
+
+    def clean(self):
+     if self.pk:
+      for child in self.children.all():
+        if any(role.name != 'STUDENT' for role in child.roles.all()):
+            raise ValidationError("Only students can be assigned as children")
 
     def save(self, *args, **kwargs):
         if self.pk is None:

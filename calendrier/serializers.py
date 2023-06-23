@@ -10,7 +10,7 @@ class RoomSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # L'établissement est automatiquement celui de l'utilisateur qui ajoute la Room
-        validated_data['establishment'] = self.context['request'].user.establishment
+        validated_data['establishment'] = self.context['request'].user.current_establishment
         return Room.objects.create(**validated_data)
 
     def update(self, instance, validated_data):

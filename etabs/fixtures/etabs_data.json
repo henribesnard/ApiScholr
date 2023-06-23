@@ -1,0 +1,51 @@
+[
+    {
+        "model": "etabs.establishmenttype",
+        "pk": 1,
+        "fields": {
+            "name": "PRESCHOOL"
+        }
+    },
+    {
+        "model": "etabs.establishmenttype",
+        "pk": 2,
+        "fields": {
+            "name": "PRIMARY"
+        }
+    },
+    {
+        "model": "etabs.establishmenttype",
+        "pk": 3,
+        "fields": {
+            "name": "MIDDLE_SCHOOL"
+        }
+    },
+    {
+        "model": "etabs.establishmenttype",
+        "pk": 4,
+        "fields": {
+            "name": "HIGH_SCHOOL"
+        }
+    },
+    {
+        "model": "etabs.establishmenttype",
+        "pk": 5,
+        "fields": {
+            "name": "UNIVERSITY"
+        }
+    },
+    {
+        "model": "etabs.establishmenttype",
+        "pk": 6,
+        "fields": {
+            "name": "INSTITUTE"
+        }
+    },
+    {
+        "model": "etabs.establishmenttype",
+        "pk": 7,
+        "fields": {
+            "name": "TRAINING_CENTER"
+        }
+    }
+]

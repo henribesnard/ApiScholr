@@ -11,9 +11,9 @@ class CommunicationBookViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         return CommunicationBook.objects.filter(
-            Q(schoolclass__establishment=user.establishment) | 
-            Q(student__establishment=user.establishment) |
-            Q(course__schoolclass__establishment=user.establishment)
+            Q(schoolclass__establishment=user.current_establishment) | 
+            Q(student__establishment=user.current_establishment) |
+            Q(course__schoolclass__establishment=user.current_establishment)
         )
 
     def perform_create(self, serializer):
@@ -32,7 +32,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Attendance.objects.filter(establishment=user.establishment)
+        return Attendance.objects.filter(establishment=user.current_establishment)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -52,7 +52,7 @@ class ParentCommunicationBookViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['update', 'partial_update']:
             return ParentCommunicationBookSerializer
-        return super().get_serializer_class()  # fallback to the original serializer if not updating
+        return super().get_serializer_class() 
 
     def perform_update(self, serializer):
         serializer.save()

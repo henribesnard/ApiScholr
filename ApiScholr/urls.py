@@ -10,6 +10,8 @@ urlpatterns = [
     path('', include('calendrier.urls')),
     path('', include('evals.urls')),
     path('', include('suivi.urls')),
+    path('', include('reseau.urls')),
+    path('', include('etabs.urls')),
 ]
 
 if settings.DEBUG:

@@ -14,7 +14,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Les utilisateurs ne peuvent voir que les Rooms dans leur établissement
         user = self.request.user
-        return Room.objects.filter(establishment=user.establishment)
+        return Room.objects.filter(establishment=user.current_establishment)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -53,7 +53,7 @@ class TimeslotListView(viewsets.ReadOnlyModelViewSet):
 
         # Staff and Heads can view all timeslots of their establishment
         if user.roles.filter(name__in=['HEAD', 'STAFF']).exists():
-            queryset = Timeslot.objects.filter(schoolclass__establishment=user.establishment)
+            queryset = Timeslot.objects.filter(schoolclass__establishment=user.current_establishment)
 
         # Teachers can view timeslots where they are teaching
         elif user.roles.filter(name='TEACHER').exists():

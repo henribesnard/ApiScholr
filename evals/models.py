@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
 
+
 class Assessment(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(_('Name'), max_length=200)
@@ -26,7 +27,7 @@ class Assessment(models.Model):
 
 class Grade(models.Model):
     id = models.AutoField(primary_key=True)
-    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_('Student'), limit_choices_to={'role': 'STUDENT'})
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_('Student'))
     assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE, verbose_name=_('Assessment'))
     points_obtained = models.DecimalField(_("Points Obtained"), max_digits=6, decimal_places=2)
     comment = models.TextField(_('Comment'), blank=True, null=True)

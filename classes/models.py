@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from etabs.models import Establishment
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 class Schoolclass(models.Model):
     LEVELS = (
@@ -45,6 +46,11 @@ class Schoolclass(models.Model):
         verbose_name = _('Class')
         verbose_name_plural = _('Classes')
 
+    def clean(self):
+     for student in self.students.all():
+        if 'STUDENT' not in [role.name for role in student.roles.all()]:
+            raise ValidationError("Only students can be assigned to Schoolclass ")
+
     def __str__(self):
         return self.name
 
@@ -82,6 +88,12 @@ class Course(models.Model):
     class Meta:
        verbose_name = _('Course')
        verbose_name_plural = _('Courses')
+
+    def clean(self):
+     for teacher in self.teachers.all():
+        if any(role.name != 'TEACHER' for role in teacher.roles.all()):
+            raise ValidationError("Only users with the 'Teacher' role can be assigned to a course")
+
 
     def __str__(self):
        return self.name

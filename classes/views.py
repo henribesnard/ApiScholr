@@ -8,17 +8,26 @@ from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from rest_framework.views import exception_handler
+
+def custom_exception_handler(exc, context):
+    # Handle PermissionDenied exceptions with your custom code
+    if isinstance(exc, PermissionDenied):
+        return Response(
+            {"detail": _("Cannot create a school class. Please, make sure that you are authorized.")},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    # For all other exception types, use the default handler
+    return exception_handler(exc, context)
 
 class CreateSchoolclassView(generics.CreateAPIView):
     queryset = Schoolclass.objects.all()
     serializer_class = SchoolclassSerializer
     permission_classes = [IsHeadOrStaffUser]
 
-    def get_exception_handler(self):
-        return lambda exc, context: Response(
-            {"detail": _("Cannot create a school class. Please, make sure that you are authorized.")},
-            status=status.HTTP_403_FORBIDDEN
-        ) if isinstance(exc, PermissionDenied) else super().get_exception_handler()(exc, context)
+    def handle_exception(self, exc):
+        return custom_exception_handler(exc, self.get_exception_handler_context())
 
 class CreateCourseView(generics.CreateAPIView):
     queryset = Course.objects.all()
@@ -52,7 +61,7 @@ class SchoolclassListView(generics.ListAPIView):
         if user.is_staff :
             return Schoolclass.objects.all()
         elif 'HEAD' in user_roles or 'STAFF' in user_roles:
-            return Schoolclass.objects.filter(Q(establishment=user.establishment))
+            return Schoolclass.objects.filter(Q(establishment=user.current_establishment))
         else:
             return Schoolclass.objects.filter(Q(students=user) | Q(principal_teacher=user))
 
@@ -67,7 +76,7 @@ class SchoolclassDetailView(generics.RetrieveAPIView):
         if user.is_staff:
             return schoolclass
         elif 'HEAD' in user_roles or 'STAFF' in user_roles:
-            if schoolclass.establishment == user.establishment:
+            if schoolclass.establishment == user.current_establishment:
                 return schoolclass
             else:
                 raise PermissionDenied(_("You can only view classes in your own establishment."))
@@ -86,7 +95,7 @@ class CourseListView(generics.ListAPIView):
         if user.is_staff:
             return Course.objects.all()
         elif 'HEAD' in user_roles or 'STAFF' in user_roles:
-            return Course.objects.filter(Q(schoolclass__establishment=user.establishment))
+            return Course.objects.filter(Q(schoolclass__establishment=user.current_establishment))
         else:
             return Course.objects.filter(Q(schoolclass__students=user) | Q(teachers=user))
 
@@ -101,7 +110,7 @@ class CourseDetailView(generics.RetrieveAPIView):
         if user.is_staff:
             return course
         elif 'HEAD' in user_roles or 'STAFF' in user_roles:
-            if course.schoolclass.establishment == user.establishment:
+            if course.schoolclass.establishment == user.current_establishment:
                 return course
             else:
                 raise PermissionDenied(_("You can only view courses in your own establishment."))

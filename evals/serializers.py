@@ -10,7 +10,7 @@ class AssessmentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request_user = self.context['request'].user
         course = validated_data.get('course')
-        if course.created_by.establishment == request_user.establishment:
+        if course.created_by.current_establishment == request_user.current_establishment:
             validated_data['created_by'] = request_user
             return super().create(validated_data)
         else:
@@ -27,8 +27,8 @@ class GradeSerializer(serializers.ModelSerializer):
         student = attrs.get('student')
         assessment = attrs.get('assessment')
 
-        if student.establishment != request_user.establishment or assessment.course.schoolclass.establishment != request_user.establishment:
-            raise serializers.ValidationError("The student and assessment must belong to your establishment.")
+        if student.current_establishment != request_user.current_establishment or assessment.course.schoolclass.establishment != request_user.current_establishment:
+            raise serializers.ValidationError(_("The student and assessment must belong to your establishment."))
 
         return attrs
 
@@ -44,9 +44,9 @@ class PerformanceSerializer(serializers.ModelSerializer):
         
     def validate(self, attrs):
         request_user = self.context['request'].user
-        if attrs['student'].establishment != request_user.establishment:
+        if attrs['student'].current_establishment != request_user.current_establishment:
             raise serializers.ValidationError({"student": _("The student does not belong to your establishment.")})
-        if attrs['assessment'].course.schoolclass.establishment != request_user.establishment:
+        if attrs['assessment'].course.schoolclass.establishment != request_user.current_establishment:
             raise serializers.ValidationError({"assessment": _("The assessment does not belong to your establishment.")})
         return attrs
 
