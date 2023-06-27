@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
+from django.db import IntegrityError
+
 from django.db.models import Q
 from rest_framework.views import exception_handler
 
@@ -26,8 +28,13 @@ class CreateSchoolclassView(generics.CreateAPIView):
     serializer_class = SchoolclassSerializer
     permission_classes = [IsHeadOrStaffUser]
 
-    def handle_exception(self, exc):
-        return custom_exception_handler(exc, self.get_exception_handler_context())
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except IntegrityError:
+            return Response({"detail": _("A class with this name already exists in this establishment.")}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class CreateCourseView(generics.CreateAPIView):
     queryset = Course.objects.all()
@@ -70,7 +77,7 @@ class SchoolclassDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         user = self.request.user
-        user_roles = [role['name'] for role in user.roles.values_list('name', flat=True)]
+        user_roles = [role for role in user.roles.values_list('name', flat=True)]
         schoolclass = get_object_or_404(Schoolclass, pk=self.kwargs['pk'])
 
         if user.is_staff:

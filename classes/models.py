@@ -45,6 +45,7 @@ class Schoolclass(models.Model):
     class Meta:
         verbose_name = _('Class')
         verbose_name_plural = _('Classes')
+        unique_together = (('name', 'establishment'),)
 
     def clean(self):
      for student in self.students.all():
@@ -88,6 +89,7 @@ class Course(models.Model):
     class Meta:
        verbose_name = _('Course')
        verbose_name_plural = _('Courses')
+       unique_together = (('name', 'schoolclass'),)
 
     def clean(self):
      for teacher in self.teachers.all():
