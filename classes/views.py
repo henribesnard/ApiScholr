@@ -42,10 +42,11 @@ class CreateCourseView(generics.CreateAPIView):
     permission_classes = [IsHeadOrStaffUser]
 
     def get_exception_handler(self):
-        return lambda exc, context: Response(
-            {"detail": _("Cannot create a course. Please, make sure that you are authorized and the class belongs to your establishment.")},
-            status=status.HTTP_403_FORBIDDEN
-        ) if isinstance(exc, PermissionDenied) else super().get_exception_handler()(exc, context)
+      return lambda exc, context: Response(
+        {"detail": _("Cannot create a course. Please, make sure that you are authorized and the class belongs to your establishment.")},
+        status=status.HTTP_403_FORBIDDEN
+    ) if isinstance(exc, PermissionDenied) else super(CreateCourseView, self).get_exception_handler()(exc, context)
+
 
 
 class SchoolclassUpdateView(generics.UpdateAPIView):
@@ -64,7 +65,7 @@ class SchoolclassListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        user_roles = [role['name'] for role in user.roles.values_list('name', flat=True)]
+        user_roles = [role for role in user.roles.values_list('name', flat=True)]
         if user.is_staff :
             return Schoolclass.objects.all()
         elif 'HEAD' in user_roles or 'STAFF' in user_roles:
@@ -98,30 +99,34 @@ class CourseListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        user_roles = [role['name'] for role in user.roles.values_list('name', flat=True)]
+        user_roles = [role for role in user.roles.values_list('name', flat=True)]
         if user.is_staff:
             return Course.objects.all()
         elif 'HEAD' in user_roles or 'STAFF' in user_roles:
-            return Course.objects.filter(Q(schoolclass__establishment=user.current_establishment))
+            return Course.objects.filter(Q(schoolclasses__establishment=user.current_establishment)).distinct()
         else:
-            return Course.objects.filter(Q(schoolclass__students=user) | Q(teachers=user))
+            return Course.objects.filter(Q(schoolclasses__students=user) | Q(teachers=user)).distinct()
+
 
 class CourseDetailView(generics.RetrieveAPIView):
     serializer_class = CourseSerializer
 
     def get_object(self):
         user = self.request.user
-        user_roles = [role['name'] for role in user.roles.values_list('name', flat=True)]
+        user_roles = [role for role in user.roles.values_list('name', flat=True)]
         course = get_object_or_404(Course, pk=self.kwargs['pk'])
 
         if user.is_staff:
             return course
         elif 'HEAD' in user_roles or 'STAFF' in user_roles:
-            if course.schoolclass.establishment == user.current_establishment:
-                return course
-            else:
-                raise PermissionDenied(_("You can only view courses in your own establishment."))
-        elif course.schoolclass.students.filter(id=user.id).exists() or course.teachers.filter(id=user.id).exists():
+            # Boucle à travers toutes les schoolclasses associées au course
+            for schoolclass in course.schoolclasses.all():
+                if schoolclass.establishment == user.current_establishment:
+                    return course
+            # Si aucune des schoolclasses n'est liée à l'établissement de l'utilisateur, déclenchez une erreur
+            raise PermissionDenied(_("You can only view courses in your own establishment."))
+        elif any(schoolclass.students.filter(id=user.id).exists() for schoolclass in course.schoolclasses.all()) or course.teachers.filter(id=user.id).exists():
             return course
         else:
             raise PermissionDenied
+

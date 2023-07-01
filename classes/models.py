@@ -75,7 +75,7 @@ class Course(models.Model):
     )
 
     name = models.CharField(_('Name'), max_length=100)
-    schoolclass = models.ForeignKey(Schoolclass, on_delete=models.CASCADE, verbose_name=_('Class'))
+    schoolclasses = models.ManyToManyField(Schoolclass, verbose_name=_('Classes'))
     subject = models.CharField(_('Subject'), max_length=20, choices=SUBJECTS)
     coefficient = models.IntegerField(_('Coefficient'), default=1)
     teachers = models.ManyToManyField(settings.AUTH_USER_MODEL, limit_choices_to={'roles__name': 'Teacher'}, blank=True, verbose_name=_('Teachers'))
@@ -89,8 +89,7 @@ class Course(models.Model):
     class Meta:
        verbose_name = _('Course')
        verbose_name_plural = _('Courses')
-       unique_together = (('name', 'schoolclass'),)
-
+       
     def clean(self):
      for teacher in self.teachers.all():
         if any(role.name != 'TEACHER' for role in teacher.roles.all()):

@@ -36,6 +36,7 @@ class SchoolclassSerializer(serializers.ModelSerializer):
 
 class CourseSerializer(serializers.ModelSerializer):
     teachers = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(roles__name='TEACHER'), many=True)
+    schoolclasses = serializers.PrimaryKeyRelatedField(queryset=Schoolclass.objects.all(), many=True)  # Ajouté pour gérer plusieurs classes
     
     class Meta:
         model = Course
@@ -53,14 +54,23 @@ class CourseSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(_("All teachers must belong to your establishment."))
         return teachers
 
-    def create(self, validated_data):
+    def validate_schoolclasses(self, schoolclasses):  
         request_user = self.context['request'].user
-        schoolclass = validated_data.get('schoolclass')
-        if schoolclass.establishment == request_user.current_establishment:
-            validated_data['created_by'] = request_user
-            return super().create(validated_data)
-        else:
-            raise serializers.ValidationError({"schoolclass": _("This class does not belong to your establishment.")})
+        for schoolclass in schoolclasses:
+            if schoolclass.establishment != request_user.current_establishment:
+                raise serializers.ValidationError(_("All classes must belong to your establishment."))
+        return schoolclasses
+
+    def create(self, validated_data):
+        teachers_data = validated_data.pop('teachers')
+        schoolclasses_data = validated_data.pop('schoolclasses')
+        request_user = self.context['request'].user
+        course = Course.objects.create(**validated_data, created_by=request_user)
+        course.teachers.set(teachers_data)
+        course.schoolclasses.set(schoolclasses_data)
+        return course
+
+
 
 
 class SchoolclassUpdateSerializer(serializers.ModelSerializer):
@@ -95,10 +105,14 @@ class CourseUpdateSerializer(serializers.ModelSerializer):
         queryset=User.objects.filter(roles__name='TEACHER'),
         many=True
     )
+    schoolclasses = serializers.PrimaryKeyRelatedField(  # Ajouté pour gérer plusieurs classes
+        queryset=Schoolclass.objects.all(),
+        many=True
+    )
 
     class Meta:
         model = Course
-        fields = ['name', 'schoolclass', 'subject', 'teachers', 'description', 'is_active']
+        fields = ['name', 'schoolclasses', 'subject', 'teachers', 'description', 'is_active']  # Modifié pour gérer plusieurs classes
 
     def validate(self, attrs):
         teachers = attrs.get('teachers')
@@ -106,6 +120,8 @@ class CourseUpdateSerializer(serializers.ModelSerializer):
         for teacher in teachers:
             if not teacher.establishments.filter(id=user.current_establishment.id).exists():
                 raise serializers.ValidationError(_("All teachers must be in the same establishment as the user."))
-            if attrs.get('schoolclass').establishment != user.current_establishment:
-                raise serializers.ValidationError(_("The course must be in the same establishment as the user."))
+        schoolclasses = attrs.get('schoolclasses')  # Ajouté pour gérer plusieurs classes
+        for schoolclass in schoolclasses:  # Ajouté pour gérer plusieurs classes
+            if schoolclass.establishment != user.current_establishment:
+                raise serializers.ValidationError(_("All classes must be in the same establishment as the user."))
         return attrs
