@@ -11,9 +11,9 @@ class CommunicationBookViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         return CommunicationBook.objects.filter(
-            Q(schoolclass__establishment=user.current_establishment) | 
-            Q(student__establishment=user.current_establishment) |
-            Q(course__schoolclass__establishment=user.current_establishment)
+            Q(schoolclass__establishment__in=user.establishments.all()) |
+            Q(student__establishments__in=user.establishments.all()) |
+            Q(course__schoolclasses__establishment__in=user.establishments.all())
         )
 
     def perform_create(self, serializer):
@@ -63,7 +63,7 @@ class StudentCommunicationBookViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return CommunicationBook.objects.filter(Q(student=user) | Q(schoolclass__students=user) | Q(course__schoolclass__students=user))
+        return CommunicationBook.objects.filter(Q(student=user) | Q(schoolclass__students=user) | Q(course__schoolclasses__students__in=[user]))
     
 class StudentAttendanceViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AttendanceSerializer
