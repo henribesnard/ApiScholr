@@ -14,6 +14,7 @@ class Room(models.Model):
     class Meta:
         verbose_name = _('Room')
         verbose_name_plural = _('Rooms')
+        unique_together = ('name', 'capacity')
 
     def __str__(self):
         return self.name

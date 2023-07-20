@@ -49,6 +49,7 @@ class TimeslotSerializer(serializers.ModelSerializer):
         room = data['room']
         start_datetime = data['start_datetime']
         end_datetime = data['end_datetime']
+        course = data['course']
 
         if not self.check_class_availability(schoolclass, start_datetime, end_datetime):
             raise serializers.ValidationError(_("The selected class is not available during this timeslot"))
@@ -61,6 +62,11 @@ class TimeslotSerializer(serializers.ModelSerializer):
                                  start_datetime=start_datetime, end_datetime=end_datetime)
         if temp_timeslot.has_overlapping():
             raise serializers.ValidationError(_("The timeslot is overlapping with another timeslot"))
+        
+        # Vérifier si le cours est enseigné dans la classe sélectionnée
+        if course and not course.schoolclasses.filter(id=schoolclass.id).exists():
+            raise serializers.ValidationError(_("The selected course is not taught in the selected class"))
+
 
         return data
 

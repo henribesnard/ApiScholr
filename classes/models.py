@@ -89,6 +89,7 @@ class Course(models.Model):
     class Meta:
        verbose_name = _('Course')
        verbose_name_plural = _('Courses')
+       unique_together = (('name', 'subject'),)
        
     def clean(self):
      for teacher in self.teachers.all():

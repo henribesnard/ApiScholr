@@ -7,4 +7,5 @@ class TimeslotAdmin(admin.ModelAdmin):
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['id', 'name', 'capacity', 'establishment'] 
+    readonly_fields = ('id',)

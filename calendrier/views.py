@@ -16,10 +16,10 @@ class RoomViewSet(viewsets.ModelViewSet):
         user = self.request.user
         return Room.objects.filter(establishment=user.current_establishment)
 
-    def perform_create(self, serializer):
+    #def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
-    def perform_update(self, serializer):
+    #def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user)
 
 class TimeslotCreateView(CreateAPIView):
