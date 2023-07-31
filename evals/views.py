@@ -1,6 +1,6 @@
-from rest_framework import viewsets, permissions
-from .models import Assessment, Grade, Performance
-from .serializers import AssessmentSerializer, GradeSerializer, PerformanceSerializer
+from rest_framework import viewsets
+from .models import Assessment, Grade
+from .serializers import AssessmentSerializer, GradeSerializer
 from ApiScholr.permissions import IsStaffOrTeacherCreating
 
 class AssessmentViewSet(viewsets.ModelViewSet):
@@ -33,66 +33,26 @@ class GradeViewSet(viewsets.ModelViewSet):
         user = self.request.user
         serializer.save(updated_by=user)
 
-class PerformanceViewSet(viewsets.ModelViewSet):
-    serializer_class = PerformanceSerializer
-    permission_classes = [IsStaffOrTeacherCreating]
-
-    def get_queryset(self):
-        user = self.request.user
-        return Performance.objects.filter(student__current_establishment=user.current_establishment)
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
-
-    def perform_update(self, serializer):
-        serializer.save(updated_by=self.request.user)
-
-
-
-class StudentAssessmentViewSet(viewsets.ReadOnlyModelViewSet):
+class UserAssessmentListView(viewsets.ReadOnlyModelViewSet):
     serializer_class = AssessmentSerializer
 
     def get_queryset(self):
         user = self.request.user
         if user.roles.filter(name='STUDENT').exists():
             return Assessment.objects.filter(course__schoolclass__students=user)
-
-class ParentAssessmentViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = AssessmentSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.roles.filter(name='PARENT').exists():
+        elif user.roles.filter(name='PARENT').exists():
             return Assessment.objects.filter(course__schoolclass__students__in=user.children.all())
+        else:
+            return Assessment.objects.none()
 
-class StudentGradeViewSet(viewsets.ReadOnlyModelViewSet):
+class UserGradeListView(viewsets.ReadOnlyModelViewSet):
     serializer_class = GradeSerializer
 
     def get_queryset(self):
         user = self.request.user
         if user.roles.filter(name='STUDENT').exists():
             return Grade.objects.filter(student=user)
-
-class ParentGradeViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = GradeSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.roles.filter(name='PARENT').exists():
+        elif user.roles.filter(name='PARENT').exists():
             return Grade.objects.filter(student__in=user.children.all())
-
-class StudentPerformanceViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = PerformanceSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.roles.filter(name='STUDENT').exists():
-            return Performance.objects.filter(grade__student=user)
-
-class ParentPerformanceViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = PerformanceSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.roles.filter(name='PARENT').exists():
-            return Performance.objects.filter(grade__student__in=user.children.all())
+        else:
+            return Grade.objects.none()

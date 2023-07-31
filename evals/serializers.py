@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Assessment, Grade, Performance
+from .models import Assessment, Grade
 from django.utils.translation import gettext_lazy as _
 
 class AssessmentSerializer(serializers.ModelSerializer):
@@ -35,23 +35,5 @@ class GradeSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request_user = self.context['request'].user
         validated_data['created_by'] = request_user
-        return super().create(validated_data)
-
-
-class PerformanceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Performance
-        fields = '__all__'
-        
-    def validate(self, attrs):
-        request_user = self.context['request'].user
-        if attrs['student'].current_establishment != request_user.current_establishment:
-            raise serializers.ValidationError({"student": _("The student does not belong to your establishment.")})
-        if attrs['assessment'].course.schoolclasses.filter(establishment=request_user.current_establishment).exists():
-            raise serializers.ValidationError({"assessment": _("The assessment does not belong to your establishment.")})
-        return attrs
-
-    def create(self, validated_data):
-        validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
 
